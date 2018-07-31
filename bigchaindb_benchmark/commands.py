@@ -1,4 +1,5 @@
 import sys
+import base64
 import argparse
 import logging
 from functools import partial
@@ -59,12 +60,15 @@ def run_send(args):
         while True:
             result = ws.recv()
             event = json.loads(result)
-            if (event['id'] == 'bdb_stream' and event['result']['query'] == 'tm.event=\'NewBlock\''):
+            if (event['result']['query'] == 'tm.event=\'NewBlock\''):
                 block_txs = event['result']['data']['value']['block']['data']['txs']
+                ls['event_id'] = event['id']
 
                 # Only push non empty blocks
                 if block_txs:
-                    for transaction_id in block_txs:
+                    for transaction in block_txs:
+                        transaction = json.loads(base64.b64decode(transaction.encode('utf8')).decode('utf8'))
+                        transaction_id = transaction['id']
                         if transaction_id in TRACKER:
                             TRACKER[transaction_id]['ts_commit'] = ts()
                             CSV_WRITER.writerow(TRACKER[transaction_id])
@@ -185,8 +189,9 @@ def configure(args):
     CSV_WRITER.writeheader()
 
     def emit(stats):
-        logger.info('Processing transactions, '
+        logger.info('Processing transactions, event_id: %s, '
             'accepted: %s (%s tx/s), committed %s (%s tx/s), errored %s (%s tx/s), mempool %s (%s tx/s)',
+            stats['event_id'],
             stats['accept'], stats.get('accept.speed', 0),
             stats['commit'], stats.get('commit.speed', 0),
             stats['error'], stats.get('error.speed', 0),
@@ -195,9 +200,11 @@ def configure(args):
 
     import logstats
     ls = logstats.Logstats(emit_func=emit)
+    ls['event_id'] = 'bdb_stream'
     ls['accept'] = 0
     ls['commit'] = 0
     ls['error'] = 0
+
     logstats.thread.start(ls)
     bigchaindb_benchmark.config = {'ls': ls}
 
