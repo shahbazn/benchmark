@@ -45,29 +45,29 @@ def generate(keypair=None, size=None, amount=None):
             return
         yield _generate(keypair, size)
 
-@ttl_cache(ttl=10)
-def get_unconfirmed_tx(tm_http_api):
-    num_unconfirmed_txs_api = '/num_unconfirmed_txs'
-    tm_http_api = tm_http_api.strip('/')
-    url = tm_http_api + num_unconfirmed_txs_api
-    try:
-        resp = requests.get(url)
-        if resp.status_code == requests.codes.ok:
-            return int(resp.json()['result']['n_txs'])
-    except:
-        raise
+# @ttl_cache(ttl=10)
+# def get_unconfirmed_tx(tm_http_api):
+#     num_unconfirmed_txs_api = '/num_unconfirmed_txs'
+#     tm_http_api = tm_http_api.strip('/')
+#     url = tm_http_api + num_unconfirmed_txs_api
+#     try:
+#         resp = requests.get(url)
+#         if resp.status_code == requests.codes.ok:
+#             return int(resp.json()['result']['n_txs'])
+#     except:
+#         raise
 
 def send(args, peer, tx):
     # Stop sending transactions if unconfirmed
     # transaction in mempool are above the set
     # threshold
-    TM_HTTP_ENDPOINT = 'http://{}:26657'.format(urlparse(peer).hostname)
-    unconfirmed_tx_th = args.unconfirmed_tx_th
-    unconfirmed_txs = get_unconfirmed_tx(TM_HTTP_ENDPOINT)
-    backoff_time = 1
-    while unconfirmed_txs > unconfirmed_tx_th:
-        sleep(backoff_time)
-        unconfirmed_txs = get_unconfirmed_tx(TM_HTTP_ENDPOINT)
+    # TM_HTTP_ENDPOINT = 'http://{}:26657'.format(urlparse(peer).hostname)
+    # unconfirmed_tx_th = args.unconfirmed_tx_th
+    # unconfirmed_txs = get_unconfirmed_tx(TM_HTTP_ENDPOINT)
+    # backoff_time = 1
+    # while unconfirmed_txs > unconfirmed_tx_th:
+    #     sleep(backoff_time)
+    #     unconfirmed_txs = get_unconfirmed_tx(TM_HTTP_ENDPOINT)
 
     driver = BigchainDB(peer, headers=args.auth)
 
